@@ -1,0 +1,321 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:           fw
+# Required-Start:     $network $remote_fs $syslog
+# Required-Stop:      $network $remote_fs $syslog
+# Default-Start:      2 3 4 5
+# Default-Stop:       0 1 6
+# Short-Description:  Start firewall daemon
+### END INIT INFO
+
+# -x
+clear
+#=============================================================================
+#
+#          FILE:  firewall
+#         USAGE:  firewall [start] [stop] [restart] [reload] [force-reload]
+#   DESCRIPTION:  IPTables Basis-Rules for ubuntu touch
+#
+#        OPTION:  START/STOP/RESTART/RELOAD/FORCE_RELOAD (see USAGE)
+#  REQUIREMENTS:  ---
+#          BUGS:  iface ccmni0 or your mobile phone iface ERROR
+#         NOTES:  update-rc.d -n fw defaults 3
+#        AUTHOR:  Marco Hinz
+#       COMPANY:  Justice
+#       VERSION:  2.0.1
+#       CREATED:  25.09.2009 - 22:10
+#      REVISION:  27.06.2013, 19.09.2014, 10.10.2014, 21.02.2015, 21.03.2015
+#                 12.09.2015, 01.10.2015
+#=============================================================================
+
+echo 1 > /proc/sys/net/ipv4/tcp_syncookies
+echo 1 > /proc/sys/net/ipv4/icmp_echo_ignore_broadcasts
+echo 1 > /proc/sys/net/ipv4/icmp_ignore_bogus_error_responses
+
+#=============================================================================
+# declaration
+#=============================================================================
+IPT=/sbin/iptables
+cd /tmp/
+echo ""
+
+#=============================================================================
+# NICs
+#=============================================================================
+
+lan_if="$(route | grep "UG" | cut -b 73-77)"
+echo -e "Activ Interface is \033[31m$lan_if\033[0m"
+lan_mac="$(ifconfig "${lan_if}" | grep "HWaddr" |cut -b 39-55)"
+echo -e "The hardware address of the interface \033[31m$lan_if\033[0m is \033[32m$lan_mac\033[0m (MAC)."
+
+#=============================================================================
+# IPs
+#=============================================================================
+wget -nv http://my.ip.fi/
+wan_ip="$(cat /tmp/index.html)"
+rm /tmp/index.html
+echo "My WAN IP is $wan_ip: `date`" >> /home/phablet/Documents/wan_ips/wan_ips.txt
+echo -e "The INTERNET ADDRESS is \033[32m$wan_ip\033[0m (IPv4)."
+wan_net="0/0"
+echo -e "The INTERNET DESTINATION is \033[32m$wan_net\033[0m (IPv4)."
+lan_ip="$(ifconfig "${lan_if}" | sed -n '/inet addr/s/.*addr.\([^ ]*\) .*/\1/p')"
+echo -e "The ETHERNET ADDRESS of the interface \033[31m$lan_if\033[0m is \033[32m$lan_ip\033[0m (IPv4)."
+lan_bcast_ip="$(ifconfig "${lan_if}" | sed -n '/Bcast/s/.*cast.\([^ ]*\) .*/\1/p')"
+echo -e "The BROADCAST ADDRESS of the interface \033[31m$lan_if\033[0m is \033[32m$lan_bcast_ip\033[0m (IPv4)."
+lan_mask="$( ifconfig $lan_if | grep Bcast | cut -d: -f4 | cut -d" " -f4)"
+echo -e "The SUBNETMASK of the interface \033[31m$lan_if\033[0m is \033[32m$lan_mask\033[0m (IPv4)."
+lan_net="$(route -n | grep "${lan_mask}" | cut -f1 -d" ")"/24
+echo -e "The NETWORK ADDRESS of the interface \033[31m$lan_if\033[0m is \033[32m$lan_net\033[0m (IPv4)."
+
+remote_ip="$(cat /etc/fw/remote_ip|grep -v -E "^#")"
+gateway_ip="$(route -n | grep "UG" |cut -b 17-31)"
+echo -e "The GATEWAY ADDRESS is \033[32m$gateway_ip\033[0m (IPv4)."
+trusted_ips="$(cat /etc/fw/trusted_ips|grep -v -E "^#")"
+dns_ip=${gateway_ip}
+echo -e "The DNS SERVER ADDRESS is \033[32m$gateway_ip\033[0m (IPv4)."
+
+#=============================================================================
+# Ports
+#=============================================================================
+ssh_port="$(cat /etc/fw/ssh_port | grep -v -E "^#")"
+web_port="$(cat /etc/fw/web_port | grep -v -E "^#")"
+
+echo "Declaration reading...OK"
+
+#=============================================================================
+# Firewall Start...
+#=============================================================================
+case "$1" in
+    start|restart|reload|force-reload)
+    echo "Firewall start now..."
+    echo ""
+
+#=============================================================================
+# establish chains
+#=============================================================================
+    $IPT -N logdrop
+    $IPT -N notsyndrop
+    $IPT -N syn-flood
+    $IPT -N portscan
+    $IPT -N suspect
+    $IPT -N xmas
+    $IPT -N null
+    echo "chains established"
+    echo "--------------------------------"
+
+#=============================================================================
+# flushing chains
+#=============================================================================
+    $IPT -F INPUT
+    $IPT -F OUTPUT
+    $IPT -F FORWARD
+#$IPT -t nat -F PREROUTING
+#$IPT -t nat -F POSTROUTING
+#$IPT -t nat -F OUTPUT
+    $IPT -F logdrop
+    $IPT -F notsyndrop
+    $IPT -F syn-flood
+    $IPT -F portscan
+    $IPT -F suspect
+    $IPT -F null
+    echo "chains flushed"
+    echo "--------------------------------"
+
+#=============================================================================
+# charging chains
+#=============================================================================
+    $IPT -A logdrop -j LOG -m limit --limit 6/minute --log-prefix "LOGDROP: "
+    $IPT -A logdrop -j DROP
+    $IPT -A notsyndrop -j LOG -m limit --limit 6/minute --log-prefix "!SYNDROP: "
+    $IPT -A notsyndrop -j DROP
+    $IPT -A syn-flood -m limit --limit 1/s --limit-burst 4 -j RETURN
+    $IPT -A syn-flood -j LOG -m limit --limit 6/minute --log-prefix "SYN-FLOOD DROP: "
+    $IPT -A syn-flood -j DROP
+    $IPT -A portscan -m limit --limit 1/s --limit-burst 2 -j RETURN
+    $IPT -A portscan -j LOG -m limit --limit 6/minute --log-prefix "Portscan DROP: "
+    $IPT -A portscan -j DROP
+    $IPT -A suspect -j LOG -m limit --limit 6/minute --log-prefix "Suspect-Frame DROP: "
+    $IPT -A suspect -j DROP
+    $IPT -A xmas -j LOG -m limit --limit 6/minute --log-prefix "XMAS-Frame DROP: "
+    $IPT -A xmas -j DROP
+    $IPT -A null -j LOG -m limit --limit 6/minute --log-prefix "NULL-Frame DROP: "
+    $IPT -A null -j DROP
+    echo "chains charged"
+    echo "--------------------------------"
+
+#=============================================================================
+# Default-Policy Rules
+#=============================================================================
+    $IPT -P INPUT DROP
+    $IPT -P OUTPUT DROP
+    $IPT -P FORWARD DROP
+#$IPT -A FORWARD -s 0.0.0.0/0.0.0.0 -d 0.0.0.0/0.0.0.0 -m state --state INVALID -j DROP
+    $IPT -t nat -P PREROUTING ACCEPT
+    $IPT -t nat -P POSTROUTING ACCEPT
+    $IPT -t nat -P OUTPUT ACCEPT
+#$IPT -t nat -P PREROUTING logdrop
+#$IPT -t nat -P POSTROUTING logdrop
+#$IPT -t nat -P OUTPUT logdrop
+    echo "Default-Policy composed"
+
+#=============================================================================
+# Loopback-Device Rules
+#=============================================================================
+    $IPT -A INPUT -i lo -s 127.0.0.1 -j ACCEPT
+    $IPT -A OUTPUT -o lo -s 127.0.0.1 -j ACCEPT
+    echo "Rule 1 composed"
+
+#=============================================================================
+# Connection-Tracking Rules !!! ;-)
+#=============================================================================
+    $IPT -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+    $IPT -A OUTPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+    echo "Rule 2 composed"
+
+#=============================================================================
+# BOGON-Private-DROP Rule (!green, orange and blue ifaces)
+#=============================================================================
+#for ip in $BOGON; do
+#	$IPT -A INPUT -i $ext_if -s $int_ip -j LOG --log-prefix "BOGONS DROP: ";
+#	$IPT -A INPUT -i $ext_if -s $int_ip -j DROP;
+#done
+    echo "Rule 3 !composed (BOGON-DROP)"
+#for ip in $PRIVATE; do
+#	$IPT -A INPUT -i $ext_if -s $int_ip -j LOG --log-prefix "PRIVATE DROP: ";
+#	$IPT -A INPUT -i $ext_if -s $int_ip -j DROP;
+#done
+    echo "Rule 4 !composed (PRIVATE-DROP)"
+
+#=============================================================================
+# ACK-Tunneling-DROP Rule
+#=============================================================================
+    $IPT -A INPUT -p tcp ! --syn -m state --state NEW -j notsyndrop
+    echo "Rule 5 composed (ACK-Tun-DROP)"
+
+#=============================================================================
+# Simple Portscan Rules
+#=============================================================================
+    $IPT -A INPUT -p tcp --dport 21 --syn -j portscan
+    $IPT -A INPUT -p tcp --dport 22 --syn -j portscan
+    $IPT -A INPUT -p tcp --dport 23 --syn -j portscan
+    $IPT -A INPUT -p tcp --dport 25 --syn -j portscan
+    echo "Rule 6 composed (Anti Portscan)"
+
+#=============================================================================
+# Simple SYN-Flood Rules
+#=============================================================================
+    $IPT -A INPUT -p tcp --dport 21 --syn -j syn-flood
+    $IPT -A INPUT -p tcp --dport 22 --syn -j syn-flood
+    $IPT -A INPUT -p tcp --dport 23 --syn -j syn-flood
+    $IPT -A INPUT -p tcp --dport 25 --syn -j syn-flood
+    echo "Rule 7 composed (Anti-SYN-Flood)"
+
+#=============================================================================
+# Anti-Cast REJECT Rules
+#=============================================================================
+    $IPT -A INPUT -d $lan_bcast_ip -j REJECT
+    # Ignoriere Limited Broadcast RFC 919 und RFC 922
+    $IPT -A INPUT -d 255.255.255.255/32 -j REJECT
+    # Ignoriere Multicast RFC 3171
+    $IPT -A INPUT -d 224.0.0.0/4 -j REJECT
+    # Ignoriere 240/4 RFC 1112
+    $IPT -A INPUT -d 240.0.0.0/4 -j REJECT
+    echo "Rule 8 composed (Anti-Cast)"
+
+#=============================================================================
+# Suspect-Frame-DROP Rules
+#=============================================================================
+    $IPT -A INPUT -p tcp --tcp-flags ALL FIN,URG,PSH -j suspect
+    $IPT -A INPUT -p tcp --tcp-flags ALL SYN,RST,ACK,FIN,URG -j suspect
+    $IPT -A INPUT -p tcp --tcp-flags SYN,RST SYN,RST -j suspect
+    $IPT -A INPUT -p tcp --tcp-flags FIN,RST FIN,RST -j suspect
+    $IPT -A INPUT -p tcp --tcp-flags ACK,FIN FIN -j suspect
+    $IPT -A INPUT -p tcp --tcp-flags ACK,PSH PSH -j suspect
+    $IPT -A INPUT -p tcp --tcp-flags ACK,URG URG -j suspect
+    $IPT -A INPUT -p tcp --tcp-flags SYN,FIN SYN,FIN -j suspect
+    echo "Rule 9 composed (Suspect-Frame-DROP)"
+
+#=============================================================================
+# XMAS-Frame-DROP Rule
+#=============================================================================
+    $IPT -A INPUT -p tcp --tcp-flags ALL ALL -j logdrop
+    echo "Rule 10 composed (XMAS-Frame-DROP)"
+
+#=============================================================================
+# NULL-Frame-DROP Rule
+#=============================================================================
+    $IPT -A INPUT -p tcp --tcp-flags ALL NONE -j logdrop
+    echo "Rule 11 composed (NULL-Frame-DROP)"
+
+#=============================================================================
+# personal protective equipment
+#=============================================================================
+
+# dns
+    $IPT -A OUTPUT -s $lan_ip -d $dns_ip -p tcp --dport 53 -j ACCEPT
+    $IPT -A OUTPUT -s $lan_ip -d $dns_ip -p udp --dport 53 -j ACCEPT
+    echo -e "Rule 12 composed (\033[32mdns\033[0m)"
+
+# ssh
+    $IPT -A INPUT -s $remote_ip -d $lan_ip -p tcp --dport $ssh_port -j ACCEPT
+    $IPT -A OUTPUT -s $lan_ip -d $wan_net -p tcp -m multiport --dports 20:23 -j ACCEPT
+    $IPT -A OUTPUT -s $lan_ip -d $wan_net -p tcp --dport $ssh_port -j ACCEPT
+    echo -e "Rule 13 composed (\033[32mssh\033[0m)"
+
+# web
+    $IPT -A OUTPUT -s $lan_ip -d $wan_net -p tcp -m multiport --dports 80,81,443 -j ACCEPT
+    $IPT -A OUTPUT -s $lan_ip -d $wan_net -p tcp --dport $web_port -j ACCEPT
+    echo -e "Rule 14 composed (\033[32mweb\033[0m)"
+
+#=============================================================================
+# ALL-DROP Rule
+#=============================================================================
+    $IPT -A INPUT -j logdrop
+    $IPT -A FORWARD -j logdrop
+    $IPT -A OUTPUT -j LOG
+    $IPT -A OUTPUT -j REJECT
+
+#=============================================================================
+# Firewall Stop
+#=============================================================================
+exit 0
+
+;;
+stop)
+$IPT -F logdrop
+$IPT -F notsyndrop
+$IPT -F syn-flood
+$IPT -F portscan
+$IPT -F suspect
+$IPT -F xmas
+$IPT -F null
+$IPT -F INPUT
+$IPT -F OUTPUT
+$IPT -F FORWARD
+$IPT -t nat -F PREROUTING
+$IPT -t nat -F POSTROUTING
+$IPT -t nat -F OUTPUT
+$IPT -P INPUT ACCEPT
+$IPT -P OUTPUT ACCEPT
+$IPT -P FORWARD ACCEPT
+$IPT -X logdrop
+$IPT -X notsyndrop
+$IPT -X syn-flood
+$IPT -X portscan
+$IPT -X suspect
+$IPT -X xmas
+$IPT -X null
+
+exit 0
+;;
+
+*)
+echo "service firewall {start|stop|restart|reload|force-reload}"
+echo ""
+echo "~ start		Firewall enabled, system safe ;-)"
+echo "~ stop		Firewall disabled, system unsafe :-(((("
+echo ""
+echo "Check Rules on PROMPT: iptables -vnL|less"
+exit 1
+;;
+esac

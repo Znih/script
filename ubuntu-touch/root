@@ -1,0 +1,2 @@
+sudo -i or sudo su -
+mount -o remount,rw /
