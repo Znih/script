@@ -23,8 +23,11 @@ The script will automatically detect the network variable and sets this also equ
 the firewall is started with `service fw start`.
 
 ![alt text](https://github.com/hinzigers/script/blob/master/images/firewall_start.png "Firewall Start 1")
+
 Started by ssh console.
 ![alt text](https://github.com/hinzigers/script/blob/master/images/firewall_start2.png "Firewall Start 2")
+
 Started from the smart phone witch Wi-Fi.
 ![alt text](https://github.com/hinzigers/script/blob/master/images/firewall_start3.png "Firewall Start 3")
+
 Started from the smart phone witch SIM.
