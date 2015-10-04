@@ -16,9 +16,9 @@ These rulesets has been written for a desktop client, bridge server and Ubuntu P
 
 Make directory `firewall` in `/etc/` and put all directories and all lists into, if you want. Copy the firewall script into `/etc/init.d/`and  make symlink from `/etc/init.d/firewall` to `/etc/firewall/firewall`. Change the attribute `chmod u=rwx "firewall" | chmod g-r "firewall" | chmod o-r "firewall"` to `444`.
 
-### Firewall Start
+### Firewall Start (Ubuntu Phone)
 
-The script will automatically detect the network variable and sets this also equal. The script starts only reliably with one enabled interface (wlan0 or ccmni0).
+The [script](https://github.com/hinzigers/script/blob/master/firewall/basis-script.ubuntu-phone) will automatically detect the network variable and sets this also equal. The [script](https://github.com/hinzigers/script/blob/master/firewall/basis-script.ubuntu-phone) starts only reliably with one enabled interface (wlan0 or ccmni0).
 
 The firewall is started with `service fw start`.
 
@@ -33,3 +33,4 @@ Started from the smart phone witch Wi-Fi.
 ![alt text](https://github.com/hinzigers/script/blob/master/images/firewall_start3.png "Firewall Start 3")
 
 Started from the smart phone witch SIM.
+
