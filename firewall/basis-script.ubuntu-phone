@@ -17,15 +17,15 @@ clear
 #   DESCRIPTION:  IPTables Basis-Rules for ubuntu touch
 #
 #        OPTION:  START/STOP/RESTART/RELOAD/FORCE_RELOAD (see USAGE)
-#  REQUIREMENTS:  ---
-#          BUGS:  iface ccmni0 or your mobile phone iface ERROR
+#  REQUIREMENTS:  only one iface at the time
+#          BUGS:  
 #         NOTES:  update-rc.d -n fw defaults 3
 #        AUTHOR:  Marco Hinz
 #       COMPANY:  Justice
-#       VERSION:  2.0.1
+#       VERSION:  2.0
 #       CREATED:  25.09.2009 - 22:10
 #      REVISION:  27.06.2013, 19.09.2014, 10.10.2014, 21.02.2015, 21.03.2015
-#                 12.09.2015, 01.10.2015
+#                 12.09.2015
 #=============================================================================
 
 echo 1 > /proc/sys/net/ipv4/tcp_syncookies
@@ -44,35 +44,75 @@ echo ""
 #=============================================================================
 
 lan_if="$(route | grep "UG" | cut -b 73-77)"
-echo -e "Activ Interface is \033[31m$lan_if\033[0m"
+#lan_if="ccmni0"
+
+echo -e "iface:     \033[32m$lan_if\033[0m"
 lan_mac="$(ifconfig "${lan_if}" | grep "HWaddr" |cut -b 39-55)"
-echo -e "The hardware address of the interface \033[31m$lan_if\033[0m is \033[32m$lan_mac\033[0m (MAC)."
+echo -e "HWaddr:    \033[32m$lan_mac\033[0m (MAC)"
 
 #=============================================================================
 # IPs
 #=============================================================================
-wget -nv http://my.ip.fi/
+wget -nv http://my.ip.fi/ -q
 wan_ip="$(cat /tmp/index.html)"
+nslookup $wan_ip > ip-name.txt
+wan_arpa="$(cat /tmp/ip-name.txt | grep "name" | cut -d" " -f1)"
+wan_fqdn="$(cat /tmp/ip-name.txt | grep "name" | cut -d" " -f3)"
 rm /tmp/index.html
+
 echo "My WAN IP is $wan_ip: `date`" >> /home/phablet/Documents/wan_ips/wan_ips.txt
-echo -e "The INTERNET ADDRESS is \033[32m$wan_ip\033[0m (IPv4)."
+echo -e "Public IP: \033[32m$wan_ip\033[0m (IPv4)"
+echo -e "rDNS:      \033[32m$wan_arpa\033[0m"
+echo -e "FQDN:      \033[32m$wan_fqdn\033[0m"
+
 wan_net="0/0"
-echo -e "The INTERNET DESTINATION is \033[32m$wan_net\033[0m (IPv4)."
+echo -e "wan net:   \033[32m$wan_net\033[0m (IPv4)"
+
 lan_ip="$(ifconfig "${lan_if}" | sed -n '/inet addr/s/.*addr.\([^ ]*\) .*/\1/p')"
-echo -e "The ETHERNET ADDRESS of the interface \033[31m$lan_if\033[0m is \033[32m$lan_ip\033[0m (IPv4)."
+echo -e "inet addr: \033[32m$lan_ip\033[0m (IPv4)"
+
+#lan_bcast_ip="$(ifconfig "${lan_if}" | sed -n '/Bcast/s/.*cast.\([^ ]*\) .*/\1/p')"
+#echo -e "Bcast:    \033[32m$lan_bcast_ip\033[0m (IPv4)"
+
 lan_bcast_ip="$(ifconfig "${lan_if}" | sed -n '/Bcast/s/.*cast.\([^ ]*\) .*/\1/p')"
-echo -e "The BROADCAST ADDRESS of the interface \033[31m$lan_if\033[0m is \033[32m$lan_bcast_ip\033[0m (IPv4)."
-lan_mask="$( ifconfig $lan_if | grep Bcast | cut -d: -f4 | cut -d" " -f4)"
-echo -e "The SUBNETMASK of the interface \033[31m$lan_if\033[0m is \033[32m$lan_mask\033[0m (IPv4)."
-lan_net="$(route -n | grep "${lan_mask}" | cut -f1 -d" ")"/24
-echo -e "The NETWORK ADDRESS of the interface \033[31m$lan_if\033[0m is \033[32m$lan_net\033[0m (IPv4)."
+if [ -z "$lan_bcast_ip" ]
+  then
+    lan_bcast_ip="unknown"
+fi
+
+lan_mask="$(ifconfig $lan_if | grep Mask | cut -d: -f4 | cut -d" " -f4)"
+if [ -z "$lan_mask" ]
+  then
+    lan_mask="$(ifconfig $lan_if | grep Mask | cut -d: -f3 | cut -d" " -f3)"
+fi
+
+echo -e "Bcast:     \033[32m$lan_bcast_ip\033[0m (IPv4)"
+echo -e "Mask:      \033[32m$lan_mask\033[0m (IPv4)"
+
+#lan_mask="$(ifconfig $lan_if | grep Bcast | cut -d: -f4 | cut -d" " -f4)"
+#echo -e "The SUBNETMASK of the interface \033[31m$lan_if\033[0m is \033[32m$lan_mask\033[0m (IPv4)"
+
+#lan_net="$(route -n | grep "${lan_mask}" | cut -f1 -d" ")"/24
+#echo -e "The NETWORK ADDRESS of the interface \033[31m$lan_if\033[0m is \033[32m$lan_net\033[0m (IPv4)"
 
 remote_ip="$(cat /etc/fw/remote_ip|grep -v -E "^#")"
-gateway_ip="$(route -n | grep "UG" |cut -b 17-31)"
-echo -e "The GATEWAY ADDRESS is \033[32m$gateway_ip\033[0m (IPv4)."
+
+if [ "$lan_if" == "wlan0" ]
+  then
+    lan_net="$(route -n | grep "${lan_mask}" | cut -f1 -d" ")"/24
+    gateway_ip="$(route -n | grep "UG" |cut -b 17-31)"
+fi
+
+if [ "$lan_if" == "ccmni0" ]
+  then
+    lan_net="unknown"
+    gateway_ip="$lan_ip"
+fi
+
+echo -e "lan net:   \033[32m$lan_net\033[0m (IPv4)"
+echo -e "Gateway:   \033[32m$gateway_ip\033[0m (IPv4)"
+
 trusted_ips="$(cat /etc/fw/trusted_ips|grep -v -E "^#")"
-dns_ip=${gateway_ip}
-echo -e "The DNS SERVER ADDRESS is \033[32m$gateway_ip\033[0m (IPv4)."
 
 #=============================================================================
 # Ports
@@ -80,14 +120,12 @@ echo -e "The DNS SERVER ADDRESS is \033[32m$gateway_ip\033[0m (IPv4)."
 ssh_port="$(cat /etc/fw/ssh_port | grep -v -E "^#")"
 web_port="$(cat /etc/fw/web_port | grep -v -E "^#")"
 
-echo "Declaration reading...OK"
-
 #=============================================================================
 # Firewall Start...
 #=============================================================================
 case "$1" in
     start|restart|reload|force-reload)
-    echo "Firewall start now..."
+    echo "---------------------------------"
     echo ""
 
 #=============================================================================
@@ -100,8 +138,6 @@ case "$1" in
     $IPT -N suspect
     $IPT -N xmas
     $IPT -N null
-    echo "chains established"
-    echo "--------------------------------"
 
 #=============================================================================
 # flushing chains
@@ -118,8 +154,6 @@ case "$1" in
     $IPT -F portscan
     $IPT -F suspect
     $IPT -F null
-    echo "chains flushed"
-    echo "--------------------------------"
 
 #=============================================================================
 # charging chains
@@ -140,8 +174,6 @@ case "$1" in
     $IPT -A xmas -j DROP
     $IPT -A null -j LOG -m limit --limit 6/minute --log-prefix "NULL-Frame DROP: "
     $IPT -A null -j DROP
-    echo "chains charged"
-    echo "--------------------------------"
 
 #=============================================================================
 # Default-Policy Rules
@@ -252,8 +284,8 @@ case "$1" in
 #=============================================================================
 
 # dns
-    $IPT -A OUTPUT -s $lan_ip -d $dns_ip -p tcp --dport 53 -j ACCEPT
-    $IPT -A OUTPUT -s $lan_ip -d $dns_ip -p udp --dport 53 -j ACCEPT
+    $IPT -A OUTPUT -s $lan_ip -d $wan_net -p tcp --dport 53 -j ACCEPT
+    $IPT -A OUTPUT -s $lan_ip -d $wan_net -p udp --dport 53 -j ACCEPT
     echo -e "Rule 12 composed (\033[32mdns\033[0m)"
 
 # ssh
