@@ -17,7 +17,7 @@ clear
 #   DESCRIPTION:  IPTables Basis-Rules for ubuntu touch
 #
 #        OPTION:  START/STOP/RESTART/RELOAD/FORCE_RELOAD (see USAGE)
-#  REQUIREMENTS:  only one iface at the time
+#  REQUIREMENTS:  dnsutils - only one iface at the time
 #          BUGS:  
 #         NOTES:  update-rc.d -n fw defaults 3
 #        AUTHOR:  Marco Hinz

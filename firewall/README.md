@@ -20,7 +20,7 @@ Make directory `firewall` in `/etc/` and put all directories and all lists into,
 
 The script will automatically detect the network variable and sets this also equal. The script starts only reliably with one enabled interface (wlan0 or ccmni0).
 
-the firewall is started with `service fw start`.
+The firewall is started with `service fw start`.
 
 ![alt text](https://github.com/hinzigers/script/blob/master/images/firewall_start.png "Firewall Start 1")
 
