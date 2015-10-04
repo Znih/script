@@ -32,5 +32,5 @@ Started from the smart phone witch Wi-Fi.
 
 ![alt text](https://github.com/hinzigers/script/blob/master/images/firewall_start3.png "Firewall Start 3")
 
-Started from the smart phone witch SIM. The Public IP is a Telekom proxy IP.
+Started from the smart phone witch SIM. The Public IP is a Telekom proxy IP. All values were changed.
 
