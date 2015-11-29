@@ -197,20 +197,6 @@ echo "Rule 1 composed"
 #=============================================================================
 $IPT -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
 $IPT -A OUTPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
-echo "Rule 2 composed"
-
-#=============================================================================
-# Loopback-Device Rules
-#=============================================================================
-$IPT -A INPUT -i lo -s 127.0.0.1 -j ACCEPT
-$IPT -A OUTPUT -o lo -s 127.0.0.1 -j ACCEPT
-echo "Rule 1 composed"
-
-#=============================================================================
-# Connection-Tracking Rules !!! ;-)
-#=============================================================================
-$IPT -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
-$IPT -A OUTPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
 $IPT -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT
 echo "Rule 3 composed"
 
