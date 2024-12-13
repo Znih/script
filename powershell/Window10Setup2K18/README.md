@@ -1,8 +1,8 @@
 # Windows 10 1703 Privacy Setup 2018
 Content
 * [Powershell](https://github.com/hinzigers/Debloat-Windows-10)
-* [Binary](https://www.magentacloud.de/share/kvl-2.13jb#$/)
-* [Password](http://matrixhacker.de/20171231_Komplexe-Passwoerter_KeePass2.pdf)
+* [Binary]("zensiert")
+* [Password](http://hacker:matrix2021@matrixhacker.de/20171231_Komplexe-Passwoerter_KeePass2.pdf)
 * [Generator](http://matrixhacker.de/pw-gen.zip)
 
 # Testfiles for Windows 10 Version 1703
