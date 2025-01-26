@@ -63,8 +63,8 @@ bridge_if_2="br1"
 # IPs
 #=============================================================================
 lan=""
-remote_ip=""
-gateway_ip=""
+remote_ip="127/8"
+gateway_ip="127/8"
 SERVER="$(cat /etc/pfad-to-list/liste | grep -v -E "^#")"
 echo "Server reading...OK"
 
