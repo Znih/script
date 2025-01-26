@@ -34,26 +34,25 @@ Started from the smart phone witch Wi-Fi.
 
 Started from the smart phone witch SIM. The Public IP is a Telekom proxy IP. All values were changed.
 
-###########################
-##### GPT40 (Copilot) #####
-###########################
+# GPT40 (Copilot)
+
 
 firewall/gpt40-basis-script-br.md
 Es scheint, dass du nach einer Markdown-Datei suchst, die ein Basis-Skript für eine Firewall beschreibt. Hier ist eine Beispielstruktur für eine solche Datei, die ein grundlegendes Firewall-Skript erläutert:
 
 Markdown
-# Firewall Basis-Skript
+## Firewall Basis-Skript
 
 Dieses Dokument beschreibt ein Basis-Skript zur Konfiguration einer Firewall unter Verwendung von IPTables und EBTables. Das Skript ist so konzipiert, dass es grundlegende Sicherheitsregeln für ein Netzwerk implementiert.
 
-## Voraussetzungen
+### Voraussetzungen
 
 - Linux-Betriebssystem
 - IPTables installiert (`iptables`)
 - EBTables installiert (`ebtables`)
 - Root-Berechtigungen
 
-## Skriptdatei: `firewall.sh`
+### Skriptdatei: `firewall.sh`
 
 ```bash
 #!/bin/bash -x
@@ -406,10 +405,13 @@ Bei Fragen oder Problemen wenden Sie sich bitte an den Autor:
 Autor: Marco Hinz
 Firma: Justice
 Version: 1.5
+
 Änderungsverlauf
 25.09.2009 - Erstellt
 27.06.2013, 19.09.2014, 10.10.2014, 21.02.2015, 21.03.2015 - Revisionen
 Code
+
 Dieses Markdown-Dokument bietet eine umfassende Anleitung zur Verwendung des Firewall-Skripts, einschließlich der Beschreibung des Skripts, der Verwendung und der Fehlerbehebung.
+
 Public code references from 1 repository
 github.com/hinzigers/scriptlicense MIT
