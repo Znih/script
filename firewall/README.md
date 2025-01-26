@@ -34,9 +34,9 @@ Started from the smart phone witch Wi-Fi.
 
 Started from the smart phone witch SIM. The Public IP is a Telekom proxy IP. All values were changed.
 
-################################################################################
-############################### GPT40 (Copilot) ################################
-################################################################################
+##################################################
+################# GPT40 (Copilot) ################
+##################################################
 
 firewall/gpt40-basis-script-br.md
 Es scheint, dass du nach einer Markdown-Datei suchst, die ein Basis-Skript für eine Firewall beschreibt. Hier ist eine Beispielstruktur für eine solche Datei, die ein grundlegendes Firewall-Skript erläutert:
